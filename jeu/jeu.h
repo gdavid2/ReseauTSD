@@ -50,8 +50,30 @@ int verif_case(char message[100]) {
 	
 	strcpy(msg, message);
 	
-	if (morpion[msg[1]-48][msg[0]-48] != 0) return -1;
+	if (morpion[msg[0]-48][msg[1]-48] != 0) return -1;
 	else return 0;
+}
+
+int verif_endg() {
+	int i;
+	
+	for (i=0;i<3;i++) {
+		if ((morpion[0][i] * morpion[1][i] * morpion[2][i]) == 1) return 4;
+		else if ((morpion[0][i] * morpion[1][i] * morpion[2][i]) == 6) return 5;
+	}
+	
+	for (i=0;i<3;i++) {
+		if ((morpion[i][0] * morpion[i][1] * morpion[i][2]) == 1) return 4;
+		else if ((morpion[i][0] * morpion[i][1] * morpion[i][2]) == 6) return 5;
+	}
+	
+	if ((morpion[0][0] * morpion[1][1] * morpion[2][2]) == 1) return 4;
+	else if ((morpion[0][0] * morpion[1][1] * morpion[2][2]) == 6) return 5;
+	
+	if ((morpion[0][2] * morpion[1][1] * morpion[2][0]) == 1) return 4;
+	else if ((morpion[0][2] * morpion[1][1] * morpion[2][0]) == 6) return 5;
+	
+	return 2;
 }
 
 void viderBuffer()

@@ -13,16 +13,10 @@ serveur_TCP:serveur_TCP.c commun.h
 client_TCP:client_TCP.c commun.h
 	$(GCC) -o $@-$(systeme) client_TCP.c
 
-serveur_UDP:serveur_UDP.c commun.h
+serveur_UDP:serveur_UDP.c commun.h jeu.h
 	$(GCC) -o $@-$(systeme) serveur_UDP.c
 
-client_UDP:client_UDP.c commun.h
-	$(GCC) -o $@-$(systeme) client_UDP.c
-	
-serveur_UDP:serveur_UDP.c jeu.h
-	$(GCC) -o $@-$(systeme) serveur_UDP.c
-
-client_UDP:client_UDP.c jeu.h
+client_UDP:client_UDP.c commun.h jeu.h
 	$(GCC) -o $@-$(systeme) client_UDP.c
 
 

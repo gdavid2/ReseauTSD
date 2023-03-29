@@ -63,8 +63,8 @@ main (int argc, char **argv)
     /* jeu */
     while (1) {
         switch (state) {
-            case 0:
-                printf("Connexion au serveur\n");
+            case 0: //init
+                printf("--------state 0\n");
 
                 emis = sendto (point_acces_client,
                                envoyer, strlen(envoyer) + 1, 0,
@@ -84,13 +84,14 @@ main (int argc, char **argv)
                     if (recus < 0){
                         perror ("ERREUR-recvfrom ");
                     }
-                    else if (strcmp(recu,"INIT_J1") == 0){                    ///INIT_J1///
-				        printf ("Connexion, joueur 1\n");
+                    else if (strcmp(recu,"INIT_J1") == 0){
+				        printf ("Connexion\n");
 
                         state= 1;
 			        }
-                    else if (strcmp(recu,"INIT_J2") == 0){                    ///INIT_J2///
-                        printf ("Connexion, joueur 2\n");
+                    else if (strcmp(recu,"INIT_J2") == 0){
+                        printf ("Connexion\n");
+                        printf("Le jeu commence\n");
 
                         state= 2;
                     }
@@ -98,7 +99,9 @@ main (int argc, char **argv)
 
                 break;
 
-            case 1: //joueur 1 joue
+            case 1: //joueur attend la connexion de son adversaire
+                printf("--------state 1\n");
+
                 lg_expediteur = sizeof(adresse_expediteur);
 
                 recus = recvfrom (point_acces_client,
@@ -112,63 +115,15 @@ main (int argc, char **argv)
                 else if(strcmp(recu,"INIT_OK") == 0) {
                     printf("Le jeu commence\n");
 
-                    prin(morpion);
-
-                    printf("Choisissez une case :\n");
-
-                    printf("ligne (de 0 a 2) : ");
-                    scanf("%c", &envoyer[0]);
-                    viderBuffer();
-
-                    printf("colonne (de 0 a 2) : ");
-                    scanf("%c", &envoyer[1]);
-                    viderBuffer();
-
-                    emis = sendto (point_acces_client,
-                                  envoyer, strlen (envoyer) + 1, 0,
-				                  (struct sockaddr *) &adUDP_serveur,
-				                  sizeof (adUDP_serveur));
-
-                    if (emis < 0) {
-                        perror ("ERREUR-sendto ");
-                    }
-                    else {
-                        lg_expediteur = sizeof (adresse_expediteur);
-
-                        recus = recvfrom (point_acces_client,
-                                recu, sizeof (recu), 0,
-                                (struct sockaddr *) &adresse_expediteur,
-                                &lg_expediteur);
-
-                        if (recus < 0) {
-                            perror ("ERREUR-recvfrom ");
-                        }
-                        else if (strcmp(recu,"TYP_NOK") == 0) {
-                            printf("ligne et colonne mal renseignees, recommencer.\n");
-                        }
-                        else if (strcmp(recu,"CASE_NOK") == 0) {
-                            printf("veuillez choisir une case libre (=0)\n");
-                        }
-                        else if (strcmp(recu,"CASE_OK") == 0) {
-                            morpion[envoyer[1]-48][envoyer[0]-48]= 1;
-
-                            printf("\nVous avez joue.\n");
-                            prin(morpion);
-                            printf("Attente du coup du joueur 2...\n");
-
-                            state=3;
-                        }
-                    }
+                    state= 3;
                 }
 
                 break;
 
-            case 2: //joueur 2 joue
-                printf("Le jeu commence\n");
-                printf("En attente du coup du joueur 1...\n");
+            case 2: //joueur attend le coup de son adversaire
+                printf("--------state 2\n");
 
                 lg_expediteur = sizeof(adresse_expediteur);
-
                 recus = recvfrom (point_acces_client,
                         recu, sizeof(recu), 0,
                         (struct sockaddr *) &adresse_expediteur,
@@ -177,12 +132,213 @@ main (int argc, char **argv)
                 if (recus < 0) {
                     perror ("ERREUR-recvfrom ");
                 }
-                else if(strcmp(recu,"DEM_CASE") == 0) {
+                else if(strcmp(recu,"ACT_MRP") == 0) {
+                    strcpy(envoyer, "ACT_ACK");
+                    emis = sendto (point_acces_client,
+                                   envoyer, strlen (envoyer) + 1, 0,
+                                   (struct sockaddr *) &adUDP_serveur,
+                                   sizeof (adUDP_serveur));
+
+                    if (emis < 0) {
+                        perror ("ERREUR-sendto ");
+                    }
+                    else {
+                        state= 4;
+                    }
+                }
+                else if(strcmp(recu,"INIT_OK") == 0) {
+                    printf("En attente du coup de votre adversaire...\n");
+                }
+                else if(strcmp(recu,"VIC_J") == 0) {
+                    strcpy(envoyer, "VIC_ACK");
+                    emis = sendto (point_acces_client,
+                                   envoyer, strlen (envoyer) + 1, 0,
+                                   (struct sockaddr *) &adUDP_serveur,
+                                   sizeof (adUDP_serveur));
+
+                    if (emis < 0) {
+                        perror ("ERREUR-sendto ");
+                    }
+                    else {
+                        printf("Vous avec gagne !!\n\n");
+                    }
+                }
+                else if(strcmp(recu,"DEF_J") == 0) {
+                    strcpy(envoyer, "DEF_ACK");
+                    emis = sendto (point_acces_client,
+                                   envoyer, strlen (envoyer) + 1, 0,
+                                   (struct sockaddr *) &adUDP_serveur,
+                                   sizeof (adUDP_serveur));
+
+                    if (emis < 0) {
+                        perror ("ERREUR-sendto ");
+                    }
+                    else {
+                        printf("Vous avec perdu :'(\n\n");
+                    }
+                }
+
+                break;
+
+            case 3: //joueur joue
+                printf("--------state 3\n");
+
+                printf("A vous de jouer !\n");
+                prin(morpion);
+                printf("Choisissez une case.\n");
+
+                printf("ligne (de 0 a 2) : ");
+                scanf("%c", &envoyer[0]);
+                viderBuffer();
+
+                printf("colonne (de 0 a 2) : ");
+                scanf("%c", &envoyer[1]);
+                viderBuffer();
+
+                emis = sendto (point_acces_client,
+                              envoyer, strlen (envoyer) + 1, 0,
+                              (struct sockaddr *) &adUDP_serveur,
+                              sizeof (adUDP_serveur));
+
+                if (emis < 0) {
+                    perror ("ERREUR-sendto ");
+                }
+                else {
+                    lg_expediteur = sizeof (adresse_expediteur);
+
+                    recus = recvfrom (point_acces_client,
+                            recu, sizeof (recu), 0,
+                            (struct sockaddr *) &adresse_expediteur,
+                            &lg_expediteur);
+
+
+
+                    if (recus < 0) {
+                        perror ("ERREUR-recvfrom ");
+                    }
+                    else if (strcmp(recu,"TYP_NOK") == 0) {
+                        printf("\nligne et colonne mal renseignees, recommencer.\n\n");
+                    }
+                    else if (strcmp(recu,"CASE_NOK") == 0) {
+                        printf("\nveuillez choisir une case libre (=0)\n\n");
+                    }
+                    else if(strcmp(recu,"VIC_J") == 0) {
+                        strcpy(envoyer, "VIC_ACK");
+                        emis = sendto (point_acces_client,
+                                       envoyer, strlen (envoyer) + 1, 0,
+                                       (struct sockaddr *) &adUDP_serveur,
+                                       sizeof (adUDP_serveur));
+
+                        if (emis < 0) {
+                            perror ("ERREUR-sendto ");
+                        }
+                        else {
+                            printf("Vous avec gagne !!\n\n");
+
+                            state= 0;
+                        }
+                    }
+                    else if(strcmp(recu,"DEF_J") == 0) {
+                        strcpy(envoyer, "DEF_ACK");
+                        emis = sendto (point_acces_client,
+                                       envoyer, strlen (envoyer) + 1, 0,
+                                       (struct sockaddr *) &adUDP_serveur,
+                                       sizeof (adUDP_serveur));
+
+                        if (emis < 0) {
+                            perror ("ERREUR-sendto ");
+                        }
+                        else {
+                            printf("Vous avec perdu :'(\n\n");
+
+                            state= 0;
+                        }
+                    }
+                    else if (strcmp(recu,"CHG_PLA") == 0) {
+                        morpion[envoyer[0]-48][envoyer[1]-48]= 1;
+
+                        printf("\nVous avez joue.\n");
+                        prin(morpion);
+                        printf("En attente du coup de votre adversaire...\n");
+
+                        strcpy(envoyer, "CHG_ACK");
+
+                        emis = sendto (point_acces_client,
+                               envoyer, strlen (envoyer) + 1, 0,
+                               (struct sockaddr *) &adUDP_serveur,
+                               sizeof (adUDP_serveur));
+
+                        if (recus < 0) {
+                            perror ("ERREUR-recvfrom ");
+                        }
+                        else {
+                            state= 2;
+                        }
+                    }
+                }
+
+                break;
+
+            case 4: //joueur apprend le coup de son adversaire
+                printf("--------state 4\n");
+
+                lg_expediteur = sizeof(adresse_expediteur);
+                recus = recvfrom (point_acces_client,
+                        recu, sizeof(recu), 0,
+                        (struct sockaddr *) &adresse_expediteur,
+                        &lg_expediteur);
+
+                if (recus < 0) {
+                    perror ("ERREUR-sendto ");
+                }
+                else {
+                    morpion[recu[0]-48][recu[1]-48]= 2;
+
+                    printf("Votre adversaire a joue.\n");
                     prin(morpion);
 
-                    printf("Choisissez une case :\n");
+                    strcpy(envoyer, "CHX_ACK");
+                    emis = sendto (point_acces_client,
+                           envoyer, strlen (envoyer) + 1, 0,
+                           (struct sockaddr *) &adUDP_serveur,
+                           sizeof (adUDP_serveur));
 
+                    if (emis < 0) {
+                        perror ("ERREUR-recvfrom ");
+                    }
+                    else {
+                        state= 5;
+                    }
+                }
 
+                break;
+
+            case 5: //IDLE
+                printf("--------state 5\n");
+
+                lg_expediteur = sizeof(adresse_expediteur);
+                recus = recvfrom (point_acces_client,
+                        recu, sizeof(recu), 0,
+                        (struct sockaddr *) &adresse_expediteur,
+                        &lg_expediteur);
+
+                if (recus < 0) {
+                    perror ("ERREUR-sendto ");
+                }
+                else if (strcmp(recu,"CHG_PLA") == 0) {
+                    strcpy(envoyer, "CHG_ACK");
+
+                    emis = sendto (point_acces_client,
+                           envoyer, strlen (envoyer) + 1, 0,
+                           (struct sockaddr *) &adUDP_serveur,
+                           sizeof (adUDP_serveur));
+
+                    if (emis < 0) {
+                        perror ("ERREUR-recvfrom ");
+                    }
+                    else {
+                        state= 3;
+                    }
                 }
 
                 break;

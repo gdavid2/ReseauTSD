@@ -37,6 +37,7 @@ int main (int argc, char **argv) {
         /* divers */
     int retour;
     int state =0;
+    char case_chx[100];
 
     /*---------------------------------------------- l'algorithme */
 
@@ -70,7 +71,9 @@ int main (int argc, char **argv) {
         /* phase de transfert */
     while(1) {
         switch(state){
-        case 0: //INIT
+        case 0: //init
+            printf("--------state 0\n");
+
             printf("\tPL_WAI\n");
 
             lg_expediteur=sizeof(adresse_expediteur);
@@ -86,16 +89,14 @@ int main (int argc, char **argv) {
                     addr_j1.sin_port   = adresse_expediteur.sin_port;
                     addr_j1.sin_family = adresse_expediteur.sin_family;
 
-                    strcpy(message,"INIT_J1");                            ///INIT_J1///
+                    strcpy(message,"INIT_J1");
                 }
                 else if (adresse_expediteur.sin_port != addr_j1.sin_port && addr_j2.sin_port == 0) {
-                    addr_j2.sin_port=adresse_expediteur.sin_port;
-                    addr_j2.sin_family=adresse_expediteur.sin_family;
+                    addr_j2.sin_port   = adresse_expediteur.sin_port;
+                    addr_j2.sin_family = adresse_expediteur.sin_family;
 
-                    strcpy(message,"INIT_J2");                            ///INIT_J2///
+                    strcpy(message,"INIT_J2");
                 }
-
-
 
                 emis =  sendto (point_acces_serveur,
                         message, strlen(message)+1, 0,
@@ -109,10 +110,9 @@ int main (int argc, char **argv) {
                 }
 
                 if (addr_j1.sin_port != 0 && addr_j2.sin_port != 0) {
-                    state= 1;
                     printf("\tPL_OK\n");
 
-                    strcpy(message,"INIT_OK");                           ///INIT_OK///
+                    strcpy(message,"INIT_OK");
 
                     printf("\t%s\n\n",message);
 
@@ -129,6 +129,8 @@ int main (int argc, char **argv) {
                     if (emis < 0) {
                         perror("ERREUR-sendto ");
                     }
+
+                    state= 1;
                 }
             }
 
@@ -136,7 +138,75 @@ int main (int argc, char **argv) {
 
             break;
 
-        case 1: //attente choix case joueur 1
+        case 1: //choix case joueur
+            printf("--------state 1\n");
+
+            lg_expediteur=sizeof(adresse_expediteur);
+            recus = recvfrom(point_acces_serveur,
+                    message, sizeof(message), 0,
+                    (struct sockaddr *) &adresse_expediteur, &lg_expediteur);
+
+            printf("\tCASE_RCV\n");
+
+            if (recus < 0) {
+                perror("ERREUR-recvfrom ");
+            }
+            else if (verif_typ(message) != 0) {
+                strcpy(message, "CASE_NOK");
+
+                emis =  sendto (point_acces_serveur,
+                        message, strlen(message)+1, 0,
+                        (struct sockaddr *) &adresse_expediteur, sizeof(adresse_expediteur));
+
+                printf("\tCASE_NOK\n\n");
+            }
+            else if (verif_endg(message) != 0) {
+                strcpy(message, "END_GAME");
+
+                printf("\tEND_GAME\n\n");
+
+                state= 4;
+            }
+            else {
+                strcpy(case_chx, message);
+
+                if (adresse_expediteur.sin_port == addr_j1.sin_port) {
+                    morpion[message[0]-48][message[1]-48]= 1;
+
+                    adresse_expediteur.sin_port   = addr_j2.sin_port;
+                    adresse_expediteur.sin_family = addr_j2.sin_family;
+                }
+                else if (adresse_expediteur.sin_port == addr_j2.sin_port) {
+                    morpion[message[0]-48][message[1]-48]= 2;
+
+                    adresse_expediteur.sin_port   = addr_j1.sin_port;
+                    adresse_expediteur.sin_family = addr_j1.sin_family;
+                }
+
+                printf("\tCASE_OK\n\n");
+                prin(morpion);
+                printf("\n");
+
+                strcpy(message,"ACT_MRP");
+                emis =  sendto (point_acces_serveur,
+                        message, strlen(message)+1, 0,
+                        (struct sockaddr *) &adresse_expediteur, sizeof(adresse_expediteur));
+
+                if (emis < 0) {
+                    perror("ERREUR-sendto ");
+                }
+                else {
+                    printf("\tACT_MRP\n\n");
+
+                    state= verif_endg();;
+                }
+            }
+
+            break;
+
+        case 2: //actualisation du morpion
+            printf("--------state 2\n");
+
             lg_expediteur=sizeof(adresse_expediteur);
             recus = recvfrom(point_acces_serveur,
                     message, sizeof(message), 0,
@@ -145,28 +215,194 @@ int main (int argc, char **argv) {
             if (recus < 0) {
                 perror("ERREUR-recvfrom ");
             }
-            else if (verif_typ(message) != 0) {
-                strcpy(message, "TYP_NOK");
+            else if (strcmp(message, "ACT_ACK") == 0) {
+                printf("\tMRP_ACK\n\n");
 
-                printf("\tTYP_NOK\n");
-            }
-            else if (verif_case(message) != 0) {
-                strcpy(message, "CASE_NOK");
-
-                printf("\tCASE_NOK\n");
-            }
-            else {
-                morpion[message[0]-48][message[1]-48]= 1;
-
-                printf("\tCASE_RCV\n");
-
-                strcpy(message,"CASE_OK");
+                strcpy(message, case_chx);
                 emis =  sendto (point_acces_serveur,
                         message, strlen(message)+1, 0,
                         (struct sockaddr *) &adresse_expediteur, sizeof(adresse_expediteur));
 
-                printf("\tCASE_OK\n\n");
-                prin(morpion);
+                if (recus < 0) {
+                    perror("ERREUR-recvfrom ");
+                }
+                else {
+                    printf("\tACT_CHX\n");
+
+                    lg_expediteur=sizeof(adresse_expediteur);
+                    recus = recvfrom(point_acces_serveur,
+                            message, sizeof(message), 0,
+                            (struct sockaddr *) &adresse_expediteur, &lg_expediteur);
+
+                    if (recus < 0) {
+                        perror("ERREUR-recvfrom ");
+                    }
+                    else if (strcmp(message,"CHX_ACK") == 0) {
+                        printf("\tCHX_ACK\n\n");
+                        state= 3;
+                    }
+                }
+            }
+
+            break;
+
+        case 3: //changement joueur
+            printf("--------state 3\n");
+            printf("\tCHG_PLA\n");
+
+            strcpy(message,"CHG_PLA");
+
+            emis =  sendto (point_acces_serveur,
+                    message, strlen(message)+1, 0,
+                    (struct sockaddr *) &addr_j1, sizeof(addr_j1));
+
+            if (emis < 0) {
+                perror("ERREUR-sendto ");
+            }
+            else {
+                lg_expediteur=sizeof(addr_j1);
+                recus = recvfrom(point_acces_serveur,
+                        message, sizeof(message), 0,
+                        (struct sockaddr *) &addr_j1, &lg_expediteur);
+
+                if (emis < 0) {
+                    perror("ERREUR-sendto ");
+                }
+                else {
+                    printf("\tCHG_ACK1\n\n");
+                }
+            }
+
+            printf("\tCHG_PLA\n");
+
+            strcpy(message,"CHG_PLA");
+            emis =  sendto (point_acces_serveur,
+                    message, strlen(message)+1, 0,
+                    (struct sockaddr *) &addr_j2, sizeof(addr_j2));
+
+            if (emis < 0) {
+                perror("ERREUR-sendto ");
+            }
+            else {
+                lg_expediteur=sizeof(addr_j2);
+                recus = recvfrom(point_acces_serveur,
+                        message, sizeof(message), 0,
+                        (struct sockaddr *) &addr_j2, &lg_expediteur);
+
+                if (emis < 0) {
+                    perror("ERREUR-sendto ");
+                }
+                else {
+                    printf("\tCHG_ACK2\n\n");
+                }
+            }
+
+            state= 1;
+
+            break;
+
+        case 4: //victoire j1
+            printf("--------state 4\n");
+
+            printf("\tVIC_J1\n");
+            strcpy(message,"VIC_J");
+
+            emis =  sendto (point_acces_serveur,
+                    message, strlen(message)+1, 0,
+                    (struct sockaddr *) &addr_j1, sizeof(addr_j1));
+
+            if (emis < 0) {
+                perror("ERREUR-sendto ");
+            }
+            else {
+                lg_expediteur=sizeof(adresse_expediteur);
+                recus = recvfrom(point_acces_serveur,
+                        message, sizeof(message), 0,
+                        (struct sockaddr *) &addr_j1, &lg_expediteur);
+
+                if (recus < 0) {
+                    perror("ERREUR-recvfrom ");
+                }
+                else if (strcmp(message,"VIC_ACK") == 0) {
+                    printf("\tVIC_ACK\n\n");
+                }
+            }
+
+            printf("\tDEF_J2\n");
+            strcpy(message,"DEF_J");
+
+            emis =  sendto (point_acces_serveur,
+                    message, strlen(message)+1, 0,
+                    (struct sockaddr *) &addr_j2, sizeof(addr_j2));
+
+            if (emis < 0) {
+                perror("ERREUR-sendto ");
+            }
+            else {
+                lg_expediteur=sizeof(adresse_expediteur);
+                recus = recvfrom(point_acces_serveur,
+                        message, sizeof(message), 0,
+                        (struct sockaddr *) &addr_j2, &lg_expediteur);
+
+                if (recus < 0) {
+                    perror("ERREUR-recvfrom ");
+                }
+                else if (strcmp(message,"DEF_ACK") == 0) {
+                    printf("\tDEF_ACK\n\n");
+                }
+            }
+
+            break;
+
+        case 5: //victoire j2
+            printf("--------state 5\n");
+
+            printf("\tVIC_J2\n");
+            strcpy(message,"VIC_J");
+
+            emis =  sendto (point_acces_serveur,
+                    message, strlen(message)+1, 0,
+                    (struct sockaddr *) &addr_j2, sizeof(addr_j2));
+
+            if (emis < 0) {
+                perror("ERREUR-sendto ");
+            }
+            else {
+                lg_expediteur=sizeof(adresse_expediteur);
+                recus = recvfrom(point_acces_serveur,
+                        message, sizeof(message), 0,
+                        (struct sockaddr *) &addr_j2, &lg_expediteur);
+
+                if (recus < 0) {
+                    perror("ERREUR-recvfrom ");
+                }
+                else if (strcmp(message,"VIC_ACK") == 0) {
+                    printf("\tVIC_ACK\n\n");
+                }
+            }
+
+            printf("\tDEF_J1\n");
+            strcpy(message,"DEF_J");
+
+            emis =  sendto (point_acces_serveur,
+                    message, strlen(message)+1, 0,
+                    (struct sockaddr *) &addr_j1, sizeof(addr_j1));
+
+            if (emis < 0) {
+                perror("ERREUR-sendto ");
+            }
+            else {
+                lg_expediteur=sizeof(adresse_expediteur);
+                recus = recvfrom(point_acces_serveur,
+                        message, sizeof(message), 0,
+                        (struct sockaddr *) &addr_j1, &lg_expediteur);
+
+                if (recus < 0) {
+                    perror("ERREUR-recvfrom ");
+                }
+                else if (strcmp(message,"DEF_ACK") == 0) {
+                    printf("\tDEF_ACK\n\n");
+                }
             }
 
             break;
