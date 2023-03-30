@@ -59,19 +59,20 @@ int verif_endg() {
 	
 	for (i=0;i<3;i++) {
 		if ((morpion[0][i] * morpion[1][i] * morpion[2][i]) == 1) return 4;
-		else if ((morpion[0][i] * morpion[1][i] * morpion[2][i]) == 6) return 5;
+		else if ((morpion[0][i] * morpion[1][i] * morpion[2][i]) == 8) return 5;
 	}
 	
+	i =0;
 	for (i=0;i<3;i++) {
 		if ((morpion[i][0] * morpion[i][1] * morpion[i][2]) == 1) return 4;
-		else if ((morpion[i][0] * morpion[i][1] * morpion[i][2]) == 6) return 5;
+		else if ((morpion[i][0] * morpion[i][1] * morpion[i][2]) == 8) return 5;
 	}
 	
 	if ((morpion[0][0] * morpion[1][1] * morpion[2][2]) == 1) return 4;
-	else if ((morpion[0][0] * morpion[1][1] * morpion[2][2]) == 6) return 5;
+	else if ((morpion[0][0] * morpion[1][1] * morpion[2][2]) == 8) return 5;
 	
 	if ((morpion[0][2] * morpion[1][1] * morpion[2][0]) == 1) return 4;
-	else if ((morpion[0][2] * morpion[1][1] * morpion[2][0]) == 6) return 5;
+	else if ((morpion[0][2] * morpion[1][1] * morpion[2][0]) == 8) return 5;
 	
 	return 2;
 }

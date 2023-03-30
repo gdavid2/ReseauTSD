@@ -64,7 +64,7 @@ main (int argc, char **argv)
     while (1) {
         switch (state) {
             case 0: //init
-                printf("--------state 0\n");
+//                printf("--------state 0\n");
 
                 emis = sendto (point_acces_client,
                                envoyer, strlen(envoyer) + 1, 0,
@@ -100,7 +100,7 @@ main (int argc, char **argv)
                 break;
 
             case 1: //joueur attend la connexion de son adversaire
-                printf("--------state 1\n");
+//                printf("--------state 1\n");
 
                 lg_expediteur = sizeof(adresse_expediteur);
 
@@ -121,7 +121,7 @@ main (int argc, char **argv)
                 break;
 
             case 2: //joueur attend le coup de son adversaire
-                printf("--------state 2\n");
+//                printf("--------state 2\n");
 
                 lg_expediteur = sizeof(adresse_expediteur);
                 recus = recvfrom (point_acces_client,
@@ -160,7 +160,11 @@ main (int argc, char **argv)
                         perror ("ERREUR-sendto ");
                     }
                     else {
-                        printf("Vous avec gagne !!\n\n");
+                        printf("\nVous avec gagne !!\n\n");
+
+                        init_morpion();
+
+                        state= 6;
                     }
                 }
                 else if(strcmp(recu,"DEF_J") == 0) {
@@ -174,14 +178,18 @@ main (int argc, char **argv)
                         perror ("ERREUR-sendto ");
                     }
                     else {
-                        printf("Vous avec perdu :'(\n\n");
+                        printf("\nVous avec perdu :'(\n\n");
+
+                        init_morpion();
+
+                        state= 6;
                     }
                 }
 
                 break;
 
             case 3: //joueur joue
-                printf("--------state 3\n");
+//                printf("--------state 3\n");
 
                 printf("A vous de jouer !\n");
                 prin(morpion);
@@ -211,8 +219,6 @@ main (int argc, char **argv)
                             (struct sockaddr *) &adresse_expediteur,
                             &lg_expediteur);
 
-
-
                     if (recus < 0) {
                         perror ("ERREUR-recvfrom ");
                     }
@@ -233,9 +239,11 @@ main (int argc, char **argv)
                             perror ("ERREUR-sendto ");
                         }
                         else {
-                            printf("Vous avec gagne !!\n\n");
+                            printf("\nVous avec gagne !!\n\n");
 
-                            state= 0;
+                            init_morpion();
+
+                            state= 6;
                         }
                     }
                     else if(strcmp(recu,"DEF_J") == 0) {
@@ -249,9 +257,11 @@ main (int argc, char **argv)
                             perror ("ERREUR-sendto ");
                         }
                         else {
-                            printf("Vous avec perdu :'(\n\n");
+                            printf("\nVous avec perdu :'(\n\n");
 
-                            state= 0;
+                            init_morpion();
+
+                            state= 6;
                         }
                     }
                     else if (strcmp(recu,"CHG_PLA") == 0) {
@@ -280,7 +290,7 @@ main (int argc, char **argv)
                 break;
 
             case 4: //joueur apprend le coup de son adversaire
-                printf("--------state 4\n");
+//                printf("--------state 4\n");
 
                 lg_expediteur = sizeof(adresse_expediteur);
                 recus = recvfrom (point_acces_client,
@@ -295,7 +305,6 @@ main (int argc, char **argv)
                     morpion[recu[0]-48][recu[1]-48]= 2;
 
                     printf("Votre adversaire a joue.\n");
-                    prin(morpion);
 
                     strcpy(envoyer, "CHX_ACK");
                     emis = sendto (point_acces_client,
@@ -314,7 +323,7 @@ main (int argc, char **argv)
                 break;
 
             case 5: //IDLE
-                printf("--------state 5\n");
+//                printf("--------state 5\n");
 
                 lg_expediteur = sizeof(adresse_expediteur);
                 recus = recvfrom (point_acces_client,
@@ -338,6 +347,58 @@ main (int argc, char **argv)
                     }
                     else {
                         state= 3;
+                    }
+                }
+
+                break;
+
+            case 6: //attente nouvelle partie
+//                printf("--------state 6\n");
+
+                printf("Attente pour une nouvelle partie...\n");
+
+                lg_expediteur = sizeof(adresse_expediteur);
+                recus = recvfrom (point_acces_client,
+                        recu, sizeof(recu), 0,
+                        (struct sockaddr *) &adresse_expediteur,
+                        &lg_expediteur);
+
+                if (recus < 0) {
+                    perror ("ERREUR-sendto ");
+                }
+                else if (strcmp(recu,"NGM_J1") == 0) {
+                    strcpy(envoyer, "NGM_ACK");
+
+                    emis = sendto (point_acces_client,
+                           envoyer, strlen (envoyer) + 1, 0,
+                           (struct sockaddr *) &adUDP_serveur,
+                           sizeof (adUDP_serveur));
+
+                    if (emis < 0) {
+                        perror ("ERREUR-recvfrom ");
+                    }
+                    else {
+                        printf("Nouvelle partie :\n\n");
+
+                        state= 3;
+                    }
+                }
+                else if (strcmp(recu,"NGM_J2") == 0) {
+                    strcpy(envoyer, "NGM_ACK");
+
+                    emis = sendto (point_acces_client,
+                           envoyer, strlen (envoyer) + 1, 0,
+                           (struct sockaddr *) &adUDP_serveur,
+                           sizeof (adUDP_serveur));
+
+                    if (emis < 0) {
+                        perror ("ERREUR-recvfrom ");
+                    }
+                    else {
+                        printf("Nouvelle partie :\n\n");
+                        printf("En attente du coup de votre adversaire...\n");
+
+                        state= 2;
                     }
                 }
 

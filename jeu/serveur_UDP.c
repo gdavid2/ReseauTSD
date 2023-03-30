@@ -160,12 +160,14 @@ int main (int argc, char **argv) {
 
                 printf("\tCASE_NOK\n\n");
             }
-            else if (verif_endg(message) != 0) {
-                strcpy(message, "END_GAME");
+            else if (verif_case(message) != 0) {
+                strcpy(message, "CASE_NOK");
 
-                printf("\tEND_GAME\n\n");
+                emis =  sendto (point_acces_serveur,
+                        message, strlen(message)+1, 0,
+                        (struct sockaddr *) &adresse_expediteur, sizeof(adresse_expediteur));
 
-                state= 4;
+                printf("\tCASE_NOK\n\n");
             }
             else {
                 strcpy(case_chx, message);
@@ -184,21 +186,31 @@ int main (int argc, char **argv) {
                 }
 
                 printf("\tCASE_OK\n\n");
-                prin(morpion);
-                printf("\n");
 
-                strcpy(message,"ACT_MRP");
-                emis =  sendto (point_acces_serveur,
-                        message, strlen(message)+1, 0,
-                        (struct sockaddr *) &adresse_expediteur, sizeof(adresse_expediteur));
+                if (verif_endg() == 4) {
+                    printf("\tEND_GAME\n\n");
 
-                if (emis < 0) {
-                    perror("ERREUR-sendto ");
+                    state= 4;
+                }
+                else if (verif_endg() == 5) {
+                    printf("\tEND_GAME\n\n");
+
+                    state= 5;
                 }
                 else {
-                    printf("\tACT_MRP\n\n");
+                    strcpy(message,"ACT_MRP");
+                    emis =  sendto (point_acces_serveur,
+                            message, strlen(message)+1, 0,
+                            (struct sockaddr *) &adresse_expediteur, sizeof(adresse_expediteur));
 
-                    state= verif_endg();;
+                    if (emis < 0) {
+                        perror("ERREUR-sendto ");
+                    }
+                    else {
+                        printf("\tACT_MRP\n\n");
+
+                        state= 2;
+                    }
                 }
             }
 
@@ -352,6 +364,58 @@ int main (int argc, char **argv) {
                 }
             }
 
+            printf("\tNGM_J1\n");
+            strcpy(message,"NGM_J1");
+
+            emis =  sendto (point_acces_serveur,
+                    message, strlen(message)+1, 0,
+                    (struct sockaddr *) &addr_j2, sizeof(addr_j2));
+
+            if (emis < 0) {
+                perror("ERREUR-sendto ");
+            }
+            else {
+                lg_expediteur=sizeof(adresse_expediteur);
+                recus = recvfrom(point_acces_serveur,
+                        message, sizeof(message), 0,
+                        (struct sockaddr *) &addr_j2, &lg_expediteur);
+
+                if (recus < 0) {
+                    perror("ERREUR-recvfrom ");
+                }
+                else if (strcmp(message,"NGM_ACK") == 0) {
+                    printf("\tNGM_ACK\n\n");
+                }
+            }
+
+            printf("\tNGM_J2\n");
+            strcpy(message,"NGM_J2");
+
+            emis =  sendto (point_acces_serveur,
+                    message, strlen(message)+1, 0,
+                    (struct sockaddr *) &addr_j1, sizeof(addr_j1));
+
+            if (emis < 0) {
+                perror("ERREUR-sendto ");
+            }
+            else {
+                lg_expediteur=sizeof(adresse_expediteur);
+                recus = recvfrom(point_acces_serveur,
+                        message, sizeof(message), 0,
+                        (struct sockaddr *) &addr_j1, &lg_expediteur);
+
+                if (recus < 0) {
+                    perror("ERREUR-recvfrom ");
+                }
+                else if (strcmp(message,"NGM_ACK") == 0) {
+                    printf("\tNGM_ACK\n\n");
+                }
+            }
+
+            state= 1;
+
+            init_morpion();
+
             break;
 
         case 5: //victoire j2
@@ -404,6 +468,58 @@ int main (int argc, char **argv) {
                     printf("\tDEF_ACK\n\n");
                 }
             }
+
+            printf("\tNGM_J2\n");
+            strcpy(message,"NGM_J2");
+
+            emis =  sendto (point_acces_serveur,
+                    message, strlen(message)+1, 0,
+                    (struct sockaddr *) &addr_j2, sizeof(addr_j2));
+
+            if (emis < 0) {
+                perror("ERREUR-sendto ");
+            }
+            else {
+                lg_expediteur=sizeof(adresse_expediteur);
+                recus = recvfrom(point_acces_serveur,
+                        message, sizeof(message), 0,
+                        (struct sockaddr *) &addr_j2, &lg_expediteur);
+
+                if (recus < 0) {
+                    perror("ERREUR-recvfrom ");
+                }
+                else if (strcmp(message,"NGM_ACK") == 0) {
+                    printf("\tNGM_ACK\n\n");
+                }
+            }
+
+            printf("\tNGM_J1\n");
+            strcpy(message,"NGM_J1");
+
+            emis =  sendto (point_acces_serveur,
+                    message, strlen(message)+1, 0,
+                    (struct sockaddr *) &addr_j1, sizeof(addr_j1));
+
+            if (emis < 0) {
+                perror("ERREUR-sendto ");
+            }
+            else {
+                lg_expediteur=sizeof(adresse_expediteur);
+                recus = recvfrom(point_acces_serveur,
+                        message, sizeof(message), 0,
+                        (struct sockaddr *) &addr_j1, &lg_expediteur);
+
+                if (recus < 0) {
+                    perror("ERREUR-recvfrom ");
+                }
+                else if (strcmp(message,"NGM_ACK") == 0) {
+                    printf("\tNGM_ACK\n\n");
+                }
+            }
+
+            state= 1;
+
+            init_morpion();
 
             break;
 
